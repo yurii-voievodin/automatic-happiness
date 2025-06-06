@@ -1,15 +1,9 @@
-//
-//  DocumentScanner.swift
-//  DocumentsApp
-//
-//  Created by Yurii Voievodin on 06/06/2025.
-//
-
 import SwiftUI
 import VisionKit
 
 struct DocumentScanner: UIViewControllerRepresentable {
-    var onScanCompleted: (Data) -> Void
+    var onScanCompleted: (VNDocumentCameraScan) -> Void
+    var onError: (Error) -> Void
     
     func makeUIViewController(context: Context) -> VNDocumentCameraViewController {
         let scanner = VNDocumentCameraViewController()
@@ -20,29 +14,22 @@ struct DocumentScanner: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: VNDocumentCameraViewController, context: Context) {}
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(onScanCompleted: onScanCompleted)
+        Coordinator(onScanCompleted: onScanCompleted, onError: onError)
     }
     
     class Coordinator: NSObject, VNDocumentCameraViewControllerDelegate {
-        var onScanCompleted: (Data) -> Void
+        var onScanCompleted: (VNDocumentCameraScan) -> Void
+        var onError: (Error) -> Void
         
-        init(onScanCompleted: @escaping (Data) -> Void) {
+        init(onScanCompleted: @escaping (VNDocumentCameraScan) -> Void,
+             onError: @escaping (Error) -> Void) {
             self.onScanCompleted = onScanCompleted
+            self.onError = onError
         }
         
         func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
             controller.dismiss(animated: true)
-            
-            let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 612, height: 792))
-            let data = renderer.pdfData { ctx in
-                for i in 0..<scan.pageCount {
-                    let img = scan.imageOfPage(at: i)
-                    ctx.beginPage()
-                    img.draw(in: CGRect(x: 0, y: 0, width: 612, height: 792))
-                }
-            }
-            
-            onScanCompleted(data)
+            onScanCompleted(scan)
         }
         
         func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
@@ -51,7 +38,7 @@ struct DocumentScanner: UIViewControllerRepresentable {
         
         func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFailWithError error: Error) {
             controller.dismiss(animated: true)
-            print("Scan failed: \(error.localizedDescription)")
+            onError(error)
         }
     }
-}
+} 
