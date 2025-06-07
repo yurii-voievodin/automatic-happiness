@@ -1,17 +1,22 @@
 import Foundation
 import VisionKit
 import SwiftUI
+import SwiftData
 import Combine
 
 @MainActor
 class DocumentViewModel: ObservableObject {
-    @Published private(set) var currentDocument: Document?
     @Published private(set) var isLoading = false
     @Published private(set) var error: Error?
     
+    private let modelContext: ModelContext
     private let pdfGenerationService: PDFGenerationServiceProtocol
     
-    init(pdfGenerationService: PDFGenerationServiceProtocol = PDFGenerationService()) {
+    init(
+        modelContext: ModelContext,
+        pdfGenerationService: PDFGenerationServiceProtocol = PDFGenerationService()
+    ) {
+        self.modelContext = modelContext
         self.pdfGenerationService = pdfGenerationService
     }
     
@@ -21,9 +26,15 @@ class DocumentViewModel: ObservableObject {
         
         do {
             let pdfData = try pdfGenerationService.generatePDF(from: scan)
-            let url = FileManager.default.temporaryDirectory.appendingPathComponent("Scanned_\(Date().timeIntervalSince1970).pdf")
-            try pdfData.write(to: url)
-            currentDocument = Document(url: url)
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("Scanned_\(Date().timeIntervalSince1970).pdf")
+            try pdfData.write(to: tempURL)
+            
+            let document = Document(url: tempURL)
+            document.data = pdfData
+            try document.saveToDocuments()
+            
+            modelContext.insert(document)
+            try modelContext.save()
         } catch {
             handleError(error)
         }
@@ -32,7 +43,29 @@ class DocumentViewModel: ObservableObject {
     }
     
     func handlePickedDocument(_ url: URL) {
-        currentDocument = Document(url: url)
+        do {
+            let document = Document(url: url)
+            try document.saveToDocuments()
+            
+            modelContext.insert(document)
+            try modelContext.save()
+        } catch {
+            handleError(error)
+        }
+    }
+    
+    func deleteDocument(_ document: Document) {
+        do {
+            // Delete the file if it exists
+            if let fileURL = document.fileURL {
+                try? FileManager.default.removeItem(at: fileURL)
+            }
+            
+            modelContext.delete(document)
+            try modelContext.save()
+        } catch {
+            handleError(error)
+        }
     }
     
     func handleError(_ error: Error) {
@@ -41,9 +74,5 @@ class DocumentViewModel: ObservableObject {
     
     func clearError() {
         error = nil
-    }
-    
-    func clearCurrentDocument() {
-        currentDocument = nil
     }
 } 

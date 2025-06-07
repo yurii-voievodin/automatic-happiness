@@ -1,26 +1,44 @@
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
-    @StateObject private var viewModel = DocumentViewModel()
+    @Environment(\.modelContext) private var modelContext
+    @Query private var documents: [Document]
+    @StateObject private var viewModel: DocumentViewModel
     @State private var isShowingScanner = false
     @State private var isShowingFilePicker = false
     
+    init(modelContext: ModelContext) {
+        // Initialize the view model with the provided model context
+        _viewModel = StateObject(wrappedValue: DocumentViewModel(modelContext: modelContext))
+    }
+    
     var body: some View {
         NavigationView {
-            VStack {
-                if viewModel.isLoading {
-                    ProgressView("Processing document...")
-                } else if let document = viewModel.currentDocument {
-                    DocumentView(document: document)
-                } else {
+            Group {
+                if documents.isEmpty {
                     ContentUnavailableView(
-                        "No Document Selected",
+                        "No Documents",
                         systemImage: "doc.text",
                         description: Text("Use the + button to scan or import a document")
                     )
+                } else {
+                    List {
+                        ForEach(documents) { document in
+                            NavigationLink(destination: DocumentDetailView(document: document)) {
+                                DocumentRow(document: document)
+                            }
+                            .swipeActions {
+                                Button(role: .destructive) {
+                                    viewModel.deleteDocument(document)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
+                    }
                 }
             }
-            .padding()
             .navigationTitle("Documents")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -72,7 +90,16 @@ struct ContentView: View {
     }
 }
 
-struct DocumentView: View {
+// Add a convenience initializer that uses the environment
+extension ContentView {
+    init() {
+        // This will be called when the view is created in the preview
+        // The actual modelContext will be injected by SwiftUI when the view is rendered
+        self.init(modelContext: ModelContext(try! ModelContainer(for: Document.self)))
+    }
+}
+
+struct DocumentRow: View {
     let document: Document
     
     var body: some View {
@@ -88,16 +115,12 @@ struct DocumentView: View {
                     .font(.caption)
             }
             .foregroundStyle(.secondary)
-            
-            // TODO: Add PDF preview here
-            Text("PDF Preview Coming Soon")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(8)
         }
+        .padding(.vertical, 4)
     }
 }
 
 #Preview {
     ContentView()
+        .modelContainer(for: Document.self, inMemory: true)
 } 
