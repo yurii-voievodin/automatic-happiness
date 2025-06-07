@@ -37,6 +37,7 @@ struct ContentView: View {
                             }
                         }
                     }
+                    .listStyle(.insetGrouped)
                 }
             }
             .navigationTitle("Documents")
@@ -96,27 +97,6 @@ extension ContentView {
         // This will be called when the view is created in the preview
         // The actual modelContext will be injected by SwiftUI when the view is rendered
         self.init(modelContext: ModelContext(try! ModelContainer(for: Document.self)))
-    }
-}
-
-struct DocumentRow: View {
-    let document: Document
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(document.name)
-                .font(.headline)
-            
-            HStack {
-                Label(document.formattedFileSize, systemImage: "doc")
-                    .font(.caption)
-                Spacer()
-                Label(document.createdAt.formatted(), systemImage: "calendar")
-                    .font(.caption)
-            }
-            .foregroundStyle(.secondary)
-        }
-        .padding(.vertical, 4)
     }
 }
 
