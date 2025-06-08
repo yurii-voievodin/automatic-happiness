@@ -8,16 +8,20 @@ import Combine
 class DocumentViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var error: Error?
+    @Published private(set) var securityRecommendations: [String] = []
     
     private let modelContext: ModelContext
     private let pdfGenerationService: PDFGenerationServiceProtocol
+    private let securityService: SecurityService
     
     init(
         modelContext: ModelContext,
-        pdfGenerationService: PDFGenerationServiceProtocol = PDFGenerationService()
+        pdfGenerationService: PDFGenerationServiceProtocol = PDFGenerationService(),
+        securityService: SecurityService = .shared
     ) {
         self.modelContext = modelContext
         self.pdfGenerationService = pdfGenerationService
+        self.securityService = securityService
     }
     
     func handleScannedDocument(_ scan: VNDocumentCameraScan) async {
@@ -75,4 +79,20 @@ class DocumentViewModel: ObservableObject {
     func clearError() {
         error = nil
     }
-} 
+    
+    // MARK: - Security
+    
+    func checkSecurity() {
+        let recommendations = securityService.getSecurityRecommendations()
+        if !recommendations.isEmpty {
+            securityRecommendations = recommendations
+        }
+    }
+    
+    func fullfillSecurityRecomendations() {
+        checkSecurity()
+        if securityRecommendations.isEmpty {
+            securityRecommendations = ["Your device is secure"]
+        }
+    }
+}

@@ -7,6 +7,7 @@ struct ContentView: View {
     @StateObject private var viewModel: DocumentViewModel
     @State private var isShowingScanner = false
     @State private var isShowingFilePicker = false
+    @State private var isShowingSecurityAlert = false
     
     init(modelContext: ModelContext) {
         // Initialize the view model with the provided model context
@@ -58,6 +59,15 @@ struct ContentView: View {
                         Image(systemName: "plus")
                     }
                 }
+                
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        viewModel.fullfillSecurityRecomendations()
+                        isShowingSecurityAlert = true
+                    } label: {
+                        Image(systemName: "shield")
+                    }
+                }
             }
             .sheet(isPresented: $isShowingFilePicker) {
                 DocumentPicker(
@@ -78,6 +88,15 @@ struct ContentView: View {
                     viewModel.handleError(error)
                 }
             }
+            .sheet(isPresented: $isShowingSecurityAlert) {
+                SecurityAlertView(
+                    recommendations: viewModel.securityRecommendations,
+                    isPresented: Binding(
+                        get: { isShowingSecurityAlert },
+                        set: { _ in isShowingSecurityAlert = false }
+                    )
+                )
+            }
             .alert("Error", isPresented: .constant(viewModel.error != nil)) {
                 Button("OK") {
                     viewModel.clearError()
@@ -85,6 +104,13 @@ struct ContentView: View {
             } message: {
                 if let error = viewModel.error {
                     Text(error.localizedDescription)
+                }
+            }
+            .task {
+                // Check security when the view appears
+                viewModel.checkSecurity()
+                if !viewModel.securityRecommendations.isEmpty {
+                    isShowingSecurityAlert = true
                 }
             }
         }
@@ -100,7 +126,21 @@ extension ContentView {
     }
 }
 
-#Preview {
+// MARK: - Preview Helpers
+
+#Preview("Normal View") {
     ContentView()
         .modelContainer(for: Document.self, inMemory: true)
-} 
+}
+
+#Preview("Security Alert View") {
+    SecurityAlertView(
+        recommendations: [
+            "Your device appears to be jailbroken. This may compromise the security of your documents.",
+            "Consider using a non-jailbroken device for sensitive documents.",
+            "Be cautious when accessing sensitive information on this device.",
+            "Preview: This is a simulated security alert for demonstration purposes."
+        ],
+        isPresented: .constant(true)
+    )
+}
