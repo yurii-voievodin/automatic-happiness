@@ -3,11 +3,13 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var authService: AuthenticationService
     @Query private var documents: [Document]
     @StateObject private var viewModel: DocumentViewModel
     @State private var isShowingScanner = false
     @State private var isShowingFilePicker = false
     @State private var isShowingSecurityAlert = false
+    @State private var isShowingLogin = false
     
     init(modelContext: ModelContext) {
         // Initialize the view model with the provided model context
@@ -16,47 +18,90 @@ struct ContentView: View {
     
     var body: some View {
         NavigationView {
-            Group {
-                if documents.isEmpty {
-                    ContentUnavailableView(
-                        "No Documents",
-                        systemImage: "doc.text",
-                        description: Text("Use the + button to scan or import a document")
-                    )
-                } else {
-                    List {
-                        ForEach(documents) { document in
-                            NavigationLink(destination: DocumentDetailView(document: document)) {
-                                DocumentRow(document: document)
-                            }
-                            .swipeActions {
-                                Button(role: .destructive) {
-                                    viewModel.deleteDocument(document)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
+            ZStack {
+                Group {
+                    if documents.isEmpty {
+                        ContentUnavailableView(
+                            "No Documents",
+                            systemImage: "doc.text",
+                            description: Text("Use the + button to scan or import a document")
+                        )
+                    } else {
+                        List {
+                            ForEach(documents) { document in
+                                NavigationLink(destination: DocumentDetailView(document: document)) {
+                                    DocumentRow(document: document)
+                                }
+                                .swipeActions {
+                                    Button(role: .destructive) {
+                                        viewModel.deleteDocument(document)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
                                 }
                             }
                         }
+                        .listStyle(.insetGrouped)
                     }
-                    .listStyle(.insetGrouped)
+                }
+                
+                // Floating Action Button
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Menu {
+                            Button {
+                                isShowingFilePicker = true
+                            } label: {
+                                Label("Import from Files", systemImage: "folder")
+                            }
+                            Button {
+                                isShowingScanner = true
+                            } label: {
+                                Label("Scan Document", systemImage: "camera")
+                            }
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .frame(width: 60, height: 60)
+                                .background(Color.accentColor)
+                                .clipShape(Circle())
+                                .shadow(radius: 4)
+                        }
+                        .padding()
+                    }
                 }
             }
             .navigationTitle("Documents")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button {
-                            isShowingFilePicker = true
+                    if authService.isAuthenticated {
+                        Menu {
+                            if let user = authService.currentUser {
+                                Text(user.email)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Button(role: .destructive, action: {
+                                authService.logout()
+                            }) {
+                                Label("Logout", systemImage: "rectangle.portrait.and.arrow.right")
+                            }
                         } label: {
-                            Label("Import from Files", systemImage: "folder")
+                            Image(systemName: "person.circle.fill")
+                                .font(.title2)
                         }
-                        Button {
-                            isShowingScanner = true
-                        } label: {
-                            Label("Scan Document", systemImage: "camera")
+                    } else {
+                        Button(action: {
+                            isShowingLogin = true
+                        }) {
+                            Image(systemName: "person.circle")
+                                .font(.title2)
                         }
-                    } label: {
-                        Image(systemName: "plus")
                     }
                 }
                 
@@ -87,6 +132,14 @@ struct ContentView: View {
                 } onError: { error in
                     viewModel.handleError(error)
                 }
+            }
+            .sheet(isPresented: $isShowingLogin) {
+                LoginView()
+                    .onChange(of: authService.isAuthenticated) { oldValue, newValue in
+                        if newValue {
+                            isShowingLogin = false
+                        }
+                    }
             }
             .sheet(isPresented: $isShowingSecurityAlert) {
                 SecurityAlertView(
@@ -143,4 +196,9 @@ extension ContentView {
         ],
         isPresented: .constant(true)
     )
+}
+
+#Preview {
+    ContentView(modelContext: try! ModelContainer(for: Document.self).mainContext)
+        .environmentObject(AuthenticationService.shared)
 }
