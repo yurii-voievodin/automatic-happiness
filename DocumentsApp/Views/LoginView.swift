@@ -6,6 +6,7 @@ struct LoginView: View {
     @State private var password = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var isShowingTerms = false
     
     var body: some View {
         NavigationView {
@@ -60,10 +61,22 @@ struct LoginView: View {
                 .padding(.horizontal)
                 .disabled(username.isEmpty || password.isEmpty || isLoading)
                 
+                Button(action: {
+                    isShowingTerms = true
+                }) {
+                    Text("Terms and Conditions")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 8)
+                
                 Spacer()
             }
             .padding()
             .navigationBarHidden(true)
+            .sheet(isPresented: $isShowingTerms) {
+                TermsAndConditionsView()
+            }
         }
     }
     
