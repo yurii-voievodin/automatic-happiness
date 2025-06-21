@@ -95,22 +95,11 @@ final class Document {
         let aspectRatio = pageRect.width / pageRect.height
         let thumbnailHeight: CGFloat = 100
         let thumbnailWidth = thumbnailHeight * aspectRatio
-        
-        // Create thumbnail
-        let thumbnailRect = CGRect(x: 0, y: 0, width: thumbnailWidth, height: thumbnailHeight)
-        let renderer = UIGraphicsImageRenderer(size: thumbnailRect.size)
-        
-        let thumbnailImage = renderer.image { context in
-            // Fill background
-            UIColor.systemBackground.set()
-            context.fill(thumbnailRect)
-            
-            // Draw PDF page
-            context.cgContext.translateBy(x: 0, y: thumbnailHeight)
-            context.cgContext.scaleBy(x: thumbnailWidth / pageRect.width, y: -thumbnailHeight / pageRect.height)
-            firstPage.draw(with: .mediaBox, to: context.cgContext)
-        }
-        
+
+        // Use PDFKit's thumbnail generation to preserve page appearance
+        let thumbnailSize = CGSize(width: thumbnailWidth, height: thumbnailHeight)
+        let thumbnailImage = firstPage.thumbnail(of: thumbnailSize, for: .mediaBox)
+
         // Convert to JPEG data with compression
         return thumbnailImage.jpegData(compressionQuality: 0.7)
     }
