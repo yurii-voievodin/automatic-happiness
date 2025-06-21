@@ -170,7 +170,8 @@ struct ContentView: View {
     }
 }
 
-// Add a convenience initializer that uses the environment
+// Add a convenience initializer used in previews
+// that creates a default model context instead of relying on the environment
 extension ContentView {
     init() {
         // This will be called when the view is created in the preview
