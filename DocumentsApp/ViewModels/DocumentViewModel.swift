@@ -30,8 +30,10 @@ class DocumentViewModel: ObservableObject {
         
         do {
             let pdfData = try pdfGenerationService.generatePDF(from: scan)
-            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("Scanned_\(Date().timeIntervalSince1970).pdf")
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("Scanned_\(Date().timeIntervalSince1970).pdf")
             try pdfData.write(to: tempURL)
+            defer { try? FileManager.default.removeItem(at: tempURL) }
             
             let document = Document(url: tempURL)
             document.data = pdfData
