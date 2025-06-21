@@ -5,14 +5,11 @@
 //  Created by Yurii Voievodin on 05/06/2025.
 //
 
+import Foundation
 import Testing
 @testable import DocumentsApp
 
 struct DocumentsAppTests {
-
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
-    }
 
     @Test func documentBehaviors() async throws {
         // Prepare known data
