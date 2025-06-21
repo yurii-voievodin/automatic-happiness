@@ -11,7 +11,6 @@ import SwiftData
 @main
 struct DocumentsAppApp: App {
     let container: ModelContainer
-    @StateObject private var authService = AuthenticationService.shared
     
     @Environment(\.scenePhase) private var scenePhase
     @State private var blurRadius: CGFloat = 0
@@ -30,7 +29,6 @@ struct DocumentsAppApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(modelContext: container.mainContext)
-                .environmentObject(authService)
                 .blur(radius: blurRadius)
         }
         .modelContainer(container)

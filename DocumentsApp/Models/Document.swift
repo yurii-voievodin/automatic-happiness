@@ -132,4 +132,4 @@ enum DocumentError: Error {
             return "Failed to generate document thumbnail"
         }
     }
-} 
+}

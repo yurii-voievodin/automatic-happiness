@@ -3,13 +3,11 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @EnvironmentObject private var authService: AuthenticationService
     @Query private var documents: [Document]
     @StateObject private var viewModel: DocumentViewModel
     @State private var isShowingScanner = false
     @State private var isShowingFilePicker = false
     @State private var isShowingSecurityAlert = false
-    @State private var isShowingLogin = false
     
     init(modelContext: ModelContext) {
         // Initialize the view model with the provided model context
@@ -77,34 +75,6 @@ struct ContentView: View {
             }
             .navigationTitle("Documents")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if authService.isAuthenticated {
-                        Menu {
-                            if let user = authService.currentUser {
-                                Text(user.email)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            Button(role: .destructive, action: {
-                                authService.logout()
-                            }) {
-                                Label("Logout", systemImage: "rectangle.portrait.and.arrow.right")
-                            }
-                        } label: {
-                            Image(systemName: "person.circle.fill")
-                                .font(.title2)
-                        }
-                    } else {
-                        Button(action: {
-                            isShowingLogin = true
-                        }) {
-                            Image(systemName: "person.circle")
-                                .font(.title2)
-                        }
-                    }
-                }
-                
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button {
                         viewModel.fullfillSecurityRecomendations()
@@ -132,14 +102,6 @@ struct ContentView: View {
                 } onError: { error in
                     viewModel.handleError(error)
                 }
-            }
-            .sheet(isPresented: $isShowingLogin) {
-                LoginView()
-                    .onChange(of: authService.isAuthenticated) { oldValue, newValue in
-                        if newValue {
-                            isShowingLogin = false
-                        }
-                    }
             }
             .sheet(isPresented: $isShowingSecurityAlert) {
                 SecurityAlertView(
@@ -201,5 +163,4 @@ extension ContentView {
 
 #Preview {
     ContentView(modelContext: try! ModelContainer(for: Document.self).mainContext)
-        .environmentObject(AuthenticationService.shared)
 }
