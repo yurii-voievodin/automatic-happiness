@@ -25,16 +25,21 @@ struct ContentView: View {
                             description: Text("Use the + button to scan or import a document")
                         )
                     } else {
+                        let sections = viewModel.groupedDocumentsByDate(documents: documents)
                         List {
-                            ForEach(documents) { document in
-                                NavigationLink(destination: DocumentDetailView(document: document)) {
-                                    DocumentRow(document: document)
-                                }
-                                .swipeActions {
-                                    Button(role: .destructive) {
-                                        viewModel.deleteDocument(document)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
+                            ForEach(sections, id: \.date) { section in
+                                Section(header: Text(section.date.formatted(date: .long, time: .omitted))) {
+                                    ForEach(section.documents) { document in
+                                        NavigationLink(destination: DocumentDetailView(document: document)) {
+                                            DocumentRow(document: document)
+                                        }
+                                        .swipeActions {
+                                            Button(role: .destructive) {
+                                                viewModel.deleteDocument(document)
+                                            } label: {
+                                                Label("Delete", systemImage: "trash")
+                                            }
+                                        }
                                     }
                                 }
                             }

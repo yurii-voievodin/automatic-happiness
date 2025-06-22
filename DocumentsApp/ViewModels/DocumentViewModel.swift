@@ -95,4 +95,15 @@ class DocumentViewModel: ObservableObject {
             securityRecommendations = ["Your device is secure"]
         }
     }
+    
+    // MARK: - Grouped and Sorted Documents
+    func groupedDocumentsByDate(documents: [Document]) -> [(date: Date, documents: [Document])] {
+        let grouped = Dictionary(grouping: documents) { document in
+            Calendar.current.startOfDay(for: document.createdAt)
+        }
+        let sortedDates = grouped.keys.sorted(by: >)
+        return sortedDates.map { date in
+            (date, grouped[date]?.sorted(by: { $0.createdAt > $1.createdAt }) ?? [])
+        }
+    }
 }
