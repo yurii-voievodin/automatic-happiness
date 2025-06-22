@@ -16,66 +16,34 @@ struct ContentView: View {
     
     var body: some View {
         NavigationView {
-            ZStack {
-                Group {
-                    if documents.isEmpty {
-                        ContentUnavailableView(
-                            "No Documents",
-                            systemImage: "doc.text",
-                            description: Text("Use the + button to scan or import a document")
-                        )
-                    } else {
-                        let sections = viewModel.groupedDocumentsByDate(documents: documents)
-                        List {
-                            ForEach(sections, id: \.date) { section in
-                                Section(header: Text(section.date.formatted(date: .long, time: .omitted))) {
-                                    ForEach(section.documents) { document in
-                                        NavigationLink(destination: DocumentDetailView(document: document)) {
-                                            DocumentRow(document: document)
-                                        }
-                                        .swipeActions {
-                                            Button(role: .destructive) {
-                                                viewModel.deleteDocument(document)
-                                            } label: {
-                                                Label("Delete", systemImage: "trash")
-                                            }
+            Group {
+                if documents.isEmpty {
+                    ContentUnavailableView(
+                        "No Documents",
+                        systemImage: "doc.text",
+                        description: Text("Use the + button to scan or import a document")
+                    )
+                } else {
+                    let sections = viewModel.groupedDocumentsByDate(documents: documents)
+                    List {
+                        ForEach(sections, id: \.date) { section in
+                            Section(header: Text(section.date.formatted(date: .long, time: .omitted))) {
+                                ForEach(section.documents) { document in
+                                    NavigationLink(destination: DocumentDetailView(document: document)) {
+                                        DocumentRow(document: document)
+                                    }
+                                    .swipeActions {
+                                        Button(role: .destructive) {
+                                            viewModel.deleteDocument(document)
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
                                         }
                                     }
                                 }
                             }
                         }
-                        .listStyle(.insetGrouped)
                     }
-                }
-                
-                // Floating Action Button
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Menu {
-                            Button {
-                                isShowingFilePicker = true
-                            } label: {
-                                Label("Import from Files", systemImage: "folder")
-                            }
-                            Button {
-                                isShowingScanner = true
-                            } label: {
-                                Label("Scan Document", systemImage: "camera")
-                            }
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .frame(width: 60, height: 60)
-                                .background(Color.accentColor)
-                                .clipShape(Circle())
-                                .shadow(radius: 4)
-                        }
-                        .padding()
-                    }
+                    .listStyle(.insetGrouped)
                 }
             }
             .navigationTitle("Documents")
@@ -86,6 +54,24 @@ struct ContentView: View {
                         isShowingSecurityAlert = true
                     } label: {
                         Image(systemName: "shield")
+                    }
+                }
+                
+                ToolbarItemGroup(placement: .bottomBar) {
+                    Spacer()
+                    Menu {
+                        Button {
+                            isShowingFilePicker = true
+                        } label: {
+                            Label("Import from Files", systemImage: "folder")
+                        }
+                        Button {
+                            isShowingScanner = true
+                        } label: {
+                            Label("Scan Document", systemImage: "camera")
+                        }
+                    } label: {
+                        Image(systemName: "plus")
                     }
                 }
             }
