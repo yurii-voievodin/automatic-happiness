@@ -89,7 +89,7 @@ class DocumentViewModel: ObservableObject {
         securityRecommendations = recommendations
     }
     
-    func fullfillSecurityRecomendations() {
+    func fulfillSecurityRecommendations() {
         checkSecurity()
         if securityRecommendations.isEmpty {
             securityRecommendations = ["Your device is secure"]

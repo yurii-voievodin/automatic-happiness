@@ -50,7 +50,7 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button {
-                        viewModel.fullfillSecurityRecomendations()
+                        viewModel.fulfillSecurityRecommendations()
                         isShowingSecurityAlert = true
                     } label: {
                         Image(systemName: "shield")
