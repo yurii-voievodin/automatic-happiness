@@ -12,6 +12,7 @@ final class Document {
     var fileURL: URL?
     var data: Data?
     var thumbnailData: Data?
+    var recognizedText: String?
     
     init(url: URL) {
         self.id = UUID()

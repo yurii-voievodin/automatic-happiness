@@ -37,9 +37,10 @@ class DocumentViewModel: ObservableObject {
             defer { try? FileManager.default.removeItem(at: tempURL) }
             
             // Perform text recognition on the scanned document
-            await recognizeText(from: scan)
+            let recognizedText = await recognizeText(from: scan)
             
             let document = Document(url: tempURL)
+            document.recognizedText = recognizedText.isEmpty ? nil : recognizedText
             document.data = pdfData
             try document.saveToDocuments()
             
@@ -88,8 +89,10 @@ class DocumentViewModel: ObservableObject {
     
     // MARK: - Text Recognition
     
-    private func recognizeText(from scan: VNDocumentCameraScan) async {
+    private func recognizeText(from scan: VNDocumentCameraScan) async -> String {
         print("🔍 Starting text recognition for \(scan.pageCount) page(s)")
+        
+        var allRecognizedText: [String] = []
         
         for pageIndex in 0..<scan.pageCount {
             let image = scan.imageOfPage(at: pageIndex)
@@ -99,44 +102,67 @@ class DocumentViewModel: ObservableObject {
                 continue
             }
             
-            let request = VNRecognizeTextRequest { request, error in
-                if let error = error {
-                    print("❌ Text recognition error for page \(pageIndex + 1): \(error.localizedDescription)")
-                    return
+            let pageText = await withCheckedContinuation { continuation in
+                let request = VNRecognizeTextRequest { request, error in
+                    if let error = error {
+                        print("❌ Text recognition error for page \(pageIndex + 1): \(error.localizedDescription)")
+                        continuation.resume(returning: "")
+                        return
+                    }
+                    
+                    guard let observations = request.results as? [VNRecognizedTextObservation] else {
+                        print("❌ No text recognition results for page \(pageIndex + 1)")
+                        continuation.resume(returning: "")
+                        return
+                    }
+                    
+                    var recognizedText = ""
+                    for observation in observations {
+                        guard let topCandidate = observation.topCandidates(1).first else { continue }
+                        recognizedText += topCandidate.string + "\n"
+                    }
+                    
+                    let cleanedText = recognizedText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    if cleanedText.isEmpty {
+                        print("📄 Page \(pageIndex + 1): No text found")
+                    } else {
+                        print("📄 Page \(pageIndex + 1) recognized text:")
+                        print("---")
+                        print(cleanedText)
+                        print("---")
+                    }
+                    
+                    continuation.resume(returning: cleanedText)
                 }
                 
-                guard let observations = request.results as? [VNRecognizedTextObservation] else {
-                    print("❌ No text recognition results for page \(pageIndex + 1)")
-                    return
-                }
+                request.recognitionLevel = .accurate
+                request.usesLanguageCorrection = true
                 
-                var recognizedText = ""
-                for observation in observations {
-                    guard let topCandidate = observation.topCandidates(1).first else { continue }
-                    recognizedText += topCandidate.string + "\n"
-                }
+                let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
                 
-                if recognizedText.isEmpty {
-                    print("📄 Page \(pageIndex + 1): No text found")
-                } else {
-                    print("📄 Page \(pageIndex + 1) recognized text:")
-                    print("---")
-                    print(recognizedText.trimmingCharacters(in: .whitespacesAndNewlines))
-                    print("---")
+                do {
+                    try handler.perform([request])
+                } catch {
+                    print("❌ Failed to perform text recognition for page \(pageIndex + 1): \(error.localizedDescription)")
+                    continuation.resume(returning: "")
                 }
             }
             
-            request.recognitionLevel = .accurate
-            request.usesLanguageCorrection = true
-            
-            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            
-            do {
-                try handler.perform([request])
-            } catch {
-                print("❌ Failed to perform text recognition for page \(pageIndex + 1): \(error.localizedDescription)")
+            if !pageText.isEmpty {
+                allRecognizedText.append(pageText)
             }
         }
+        
+        let combinedText = allRecognizedText.joined(separator: "\n\n--- Page \(allRecognizedText.count > 1 ? "Break" : "") ---\n\n")
+        
+        if combinedText.isEmpty {
+            print("📄 No text found in document")
+        } else {
+            print("✅ Combined recognized text saved to document")
+        }
+        
+        return combinedText
     }
     
     // MARK: - Security

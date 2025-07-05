@@ -44,6 +44,31 @@ struct DocumentDetailView: View {
                     }
                 }
                 .padding(.horizontal)
+                
+                // Recognized Text Section
+                if let recognizedText = document.recognizedText, !recognizedText.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Recognized Text")
+                            .font(.title3)
+                            .bold()
+                        
+                        DisclosureGroup("Tap to view extracted text") {
+                            ScrollView {
+                                Text(recognizedText)
+                                    .font(.body)
+                                    .foregroundStyle(.primary)
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.top, 8)
+                            }
+                            .frame(maxHeight: 300)
+                        }
+                        .padding(.all, 12)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                    }
+                    .padding(.horizontal)
+                }
             }
             .padding(.vertical)
         }
