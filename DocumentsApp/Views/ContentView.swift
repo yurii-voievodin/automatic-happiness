@@ -78,7 +78,9 @@ struct ContentView: View {
             .sheet(isPresented: $isShowingFilePicker) {
                 DocumentPicker(
                     onPick: { url in
-                        viewModel.handlePickedDocument(url)
+                        Task {
+                            await viewModel.handlePickedDocument(url)
+                        }
                     },
                     onError: { error in
                         viewModel.handleError(error)
@@ -117,6 +119,12 @@ struct ContentView: View {
                 viewModel.checkSecurity()
                 if !viewModel.securityRecommendations.isEmpty {
                     isShowingSecurityAlert = true
+                }
+            }
+            .overlay {
+                if viewModel.isPerformingTextRecognition {
+                    TextRecognitionProgressView()
+                        .transition(.opacity)
                 }
             }
         }
