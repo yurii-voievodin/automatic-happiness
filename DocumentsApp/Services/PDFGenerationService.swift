@@ -7,19 +7,17 @@ protocol PDFGenerationServiceProtocol {
 }
 
 class PDFGenerationService: PDFGenerationServiceProtocol {
-    private let pageSize: CGSize
-    
-    init(pageSize: CGSize = CGSize(width: 612, height: 792)) {
-        self.pageSize = pageSize
-    }
     
     func generatePDF(from scan: VNDocumentCameraScan) throws -> Data {
-        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: pageSize))
+        // Use a temporary renderer to get the data - we'll set bounds per page
+        let tempRenderer = UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: CGSize(width: 612, height: 792)))
         
-        return renderer.pdfData { ctx in
+        return tempRenderer.pdfData { ctx in
             for i in 0..<scan.pageCount {
                 let image = scan.imageOfPage(at: i)
-                ctx.beginPage()
+                // Use the original image size to preserve proportions
+                let pageSize = image.size
+                ctx.beginPage(withBounds: CGRect(origin: .zero, size: pageSize), pageInfo: [:])
                 image.draw(in: CGRect(origin: .zero, size: pageSize))
             }
         }
