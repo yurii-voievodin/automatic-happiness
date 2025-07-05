@@ -3,6 +3,7 @@ import VisionKit
 import SwiftUI
 import SwiftData
 import Combine
+import Vision
 
 @MainActor
 class DocumentViewModel: ObservableObject {
@@ -34,6 +35,9 @@ class DocumentViewModel: ObservableObject {
                 .appendingPathComponent("Scanned_\(Date().timeIntervalSince1970).pdf")
             try pdfData.write(to: tempURL)
             defer { try? FileManager.default.removeItem(at: tempURL) }
+            
+            // Perform text recognition on the scanned document
+            await recognizeText(from: scan)
             
             let document = Document(url: tempURL)
             document.data = pdfData
@@ -80,6 +84,59 @@ class DocumentViewModel: ObservableObject {
     
     func clearError() {
         error = nil
+    }
+    
+    // MARK: - Text Recognition
+    
+    private func recognizeText(from scan: VNDocumentCameraScan) async {
+        print("🔍 Starting text recognition for \(scan.pageCount) page(s)")
+        
+        for pageIndex in 0..<scan.pageCount {
+            let image = scan.imageOfPage(at: pageIndex)
+            
+            guard let cgImage = image.cgImage else {
+                print("❌ Failed to get CGImage for page \(pageIndex + 1)")
+                continue
+            }
+            
+            let request = VNRecognizeTextRequest { request, error in
+                if let error = error {
+                    print("❌ Text recognition error for page \(pageIndex + 1): \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let observations = request.results as? [VNRecognizedTextObservation] else {
+                    print("❌ No text recognition results for page \(pageIndex + 1)")
+                    return
+                }
+                
+                var recognizedText = ""
+                for observation in observations {
+                    guard let topCandidate = observation.topCandidates(1).first else { continue }
+                    recognizedText += topCandidate.string + "\n"
+                }
+                
+                if recognizedText.isEmpty {
+                    print("📄 Page \(pageIndex + 1): No text found")
+                } else {
+                    print("📄 Page \(pageIndex + 1) recognized text:")
+                    print("---")
+                    print(recognizedText.trimmingCharacters(in: .whitespacesAndNewlines))
+                    print("---")
+                }
+            }
+            
+            request.recognitionLevel = .accurate
+            request.usesLanguageCorrection = true
+            
+            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            
+            do {
+                try handler.perform([request])
+            } catch {
+                print("❌ Failed to perform text recognition for page \(pageIndex + 1): \(error.localizedDescription)")
+            }
+        }
     }
     
     // MARK: - Security
